@@ -554,7 +554,7 @@
             // 🔐 CONFIGURACIÓN - NUEVA CLAVE SEGURA
             // ============================================
             const firebaseConfig = {
-                apiKey: "AIzaSyDaCPS5sHGKb--1irfGjedziwih87sjKzw", // ✅ TU NUEVA CLAVE
+                apiKey: "AIzaSyDaCPS5sHGKb--1irfGjedziwih87sjKzw", // ✅ NUEVA CLAVE
                 authDomain: "el-muro-del-amor.firebaseapp.com",
                 databaseURL: "https://el-muro-del-amor-default-rtdb.firebaseio.com",
                 projectId: "el-muro-del-amor",
@@ -563,169 +563,94 @@
                 appId: "1:378615957699:web:556fc8ced01365e4b67a76"
             };
             
-            // Inicializar Firebase
             firebase.initializeApp(firebaseConfig);
             const db = firebase.database();
-            
-            // Inicializar EmailJS
             emailjs.init('MMa0uYfb9WrPFZAIn');
             
             const CONFIG = {
-                PRECIO: 1,
-                COLUMNAS: 50,
-                FILAS: 100,
-                TOTAL_BLOQUES: 5000,
-                CARACTERES_POR_BLOQUE: 2,
-                ESPACIOS_CUENTAN: false,
-                ANCHO_BLOQUE: 70,
-                ALTO_BLOQUE: 60,
-                GAP: 3,
-                ANCHO_BLOQUE_MOVIL: 48,
-                ALTO_BLOQUE_MOVIL: 45,
+                PRECIO: 1, COLUMNAS: 50, FILAS: 100, TOTAL_BLOQUES: 5000,
+                CARACTERES_POR_BLOQUE: 2, ESPACIOS_CUENTAN: false,
+                ANCHO_BLOQUE: 70, ALTO_BLOQUE: 60, GAP: 3,
+                ANCHO_BLOQUE_MOVIL: 48, ALTO_BLOQUE_MOVIL: 45,
                 PAYPAL_EMAIL: 'xanderxy.dd@gmail.com',
-                EMAILJS: {
-                    SERVICE_ID: 'service_2h5gi1k',
-                    TEMPLATE_ID: 'template_2f82j5k'
-                }
+                EMAILJS: { SERVICE_ID: 'service_2h5gi1k', TEMPLATE_ID: 'template_2f82j5k' }
             };
             
-            // ============================================
-            // 📦 ESTADO GLOBAL
-            // ============================================
-            let seleccion = new Set();
-            let ocupados = new Map();
-            let mensajes = new Map();
-            let nextId = 1;
+            let seleccion = new Set(), ocupados = new Map(), mensajes = new Map(), nextId = 1;
             
-            // ============================================
-            // ✅ VERIFICAR RECTÁNGULO
-            // ============================================
             function esRectanguloPerfecto(b) {
                 if (!b.size) return true;
-                let arr = Array.from(b).sort((x, y) => x - y);
-                let f = arr.map(i => Math.floor(i / 50));
-                let c = arr.map(i => i % 50);
-                let fMin = Math.min(...f);
-                let fMax = Math.max(...f);
-                let cMin = Math.min(...c);
-                let cMax = Math.max(...c);
-                
-                for (let i = fMin; i <= fMax; i++) {
-                    for (let j = cMin; j <= cMax; j++) {
-                        if (!arr.includes(i * 50 + j)) return false;
-                    }
-                }
+                let arr = Array.from(b).sort((x,y)=>x-y);
+                let f = arr.map(i=>Math.floor(i/50)), c = arr.map(i=>i%50);
+                let fM = Math.min(...f), fX = Math.max(...f), cM = Math.min(...c), cX = Math.max(...c);
+                for (let i=fM; i<=fX; i++) for (let j=cM; j<=cX; j++) if (!arr.includes(i*50+j)) return false;
                 return true;
             }
             
-            // ============================================
-            // 🎨 PINTAR MENSAJE CENTRADO
-            // ============================================
             function pintarMensaje(mensaje, bloques) {
-                if (!bloques || bloques.length === 0) return;
+                if (!bloques?.length) return;
+                let idxs = Array.from(bloques).sort((a,b)=>a-b);
+                let fs = idxs.map(i=>Math.floor(i/50)), cs = idxs.map(i=>i%50);
+                let fMin = Math.min(...fs), fMax = Math.max(...fs), cMin = Math.min(...cs), cMax = Math.max(...cs);
+                let isM = window.innerWidth <= 768;
+                let anB = isM ? 48 : 70, alB = isM ? 45 : 60, gp = isM ? 2 : 3;
+                let centroX = (cMin + cMax) / 2, centroY = (fMin + fMax) / 2;
+                let izq = centroX * (anB + gp) + (isM ? 10 : 12);
+                let top = centroY * (alB + gp) + (isM ? 10 : 12);
                 
-                let idxs = Array.from(bloques).sort((a, b) => a - b);
-                let fs = idxs.map(i => Math.floor(i / 50));
-                let cs = idxs.map(i => i % 50);
-                let fMin = Math.min(...fs);
-                let fMax = Math.max(...fs);
-                let cMin = Math.min(...cs);
-                let cMax = Math.max(...cs);
-                
-                let isMobile = window.innerWidth <= 768;
-                let anchoBloque = isMobile ? CONFIG.ANCHO_BLOQUE_MOVIL : CONFIG.ANCHO_BLOQUE;
-                let altoBloque = isMobile ? CONFIG.ALTO_BLOQUE_MOVIL : CONFIG.ALTO_BLOQUE;
-                let gap = isMobile ? 2 : 3;
-                
-                // Calcular centro del rectángulo
-                let centroX = (cMin + cMax) / 2;
-                let centroY = (fMin + fMax) / 2;
-                
-                let izquierda = centroX * (anchoBloque + gap) + (isMobile ? 10 : 12);
-                let top = centroY * (altoBloque + gap) + (isMobile ? 10 : 12);
-                
-                // Marcar TODOS los bloques como ocupados
-                for (let f = fMin; f <= fMax; f++) {
-                    for (let c = cMin; c <= cMax; c++) {
-                        let idx = f * 50 + c;
-                        let bloque = document.querySelector(`.bloque[data-index="${idx}"]`);
-                        if (bloque) {
-                            bloque.classList.add('ocupado');
-                            bloque.classList.remove('selected');
-                            bloque.dataset.mensajeId = mensaje.id;
-                            bloque.style.setProperty('--fondo-mensaje', mensaje.fondo);
-                            bloque.style.setProperty('--color-letra', mensaje.color);
-                            bloque.style.setProperty('--fuente-mensaje', mensaje.fuente);
-                            bloque.innerHTML = '';
-                        }
-                        ocupados.set(idx, { mensajeId: mensaje.id });
+                for (let f=fMin; f<=fMax; f++) for (let c=cMin; c<=cMax; c++) {
+                    let idx = f*50 + c, b = document.querySelector(`.bloque[data-index="${idx}"]`);
+                    if (b) {
+                        b.classList.add('ocupado'); b.classList.remove('selected');
+                        b.dataset.mensajeId = mensaje.id;
+                        b.style.setProperty('--fondo-mensaje', mensaje.fondo);
+                        b.style.setProperty('--color-letra', mensaje.color);
+                        b.style.setProperty('--fuente-mensaje', mensaje.fuente);
+                        b.innerHTML = '';
                     }
+                    ocupados.set(idx, { mensajeId: mensaje.id });
                 }
                 
-                // Crear elemento flotante centrado
-                let contenedor = document.getElementById('mensajes-flotantes');
+                let cont = document.getElementById('mensajes-flotantes');
                 let div = document.createElement('div');
                 div.className = 'mensaje-flotante';
-                div.style.left = izquierda + 'px';
-                div.style.top = top + 'px';
+                div.style.left = izq + 'px'; div.style.top = top + 'px';
                 div.style.transform = 'translate(-50%, -50%)';
                 div.dataset.mensajeId = mensaje.id;
-                
-                let texto = document.createElement('div');
-                texto.className = 'texto-centrado';
-                texto.style.setProperty('--fondo-mensaje', mensaje.fondo);
-                texto.style.setProperty('--color-letra', mensaje.color);
-                texto.style.setProperty('--fuente-mensaje', mensaje.fuente);
-                texto.style.fontFamily = mensaje.fuente;
-                
-                // Tamaño de fuente dinámico
-                let tamano = isMobile ? 18 : 24;
-                if (mensaje.texto.length > 12) tamano = isMobile ? 16 : 20;
-                texto.style.fontSize = tamano + 'px';
-                
-                texto.textContent = mensaje.texto;
-                div.appendChild(texto);
-                contenedor.appendChild(div);
+                let txt = document.createElement('div');
+                txt.className = 'texto-centrado';
+                txt.style.setProperty('--fondo-mensaje', mensaje.fondo);
+                txt.style.setProperty('--color-letra', mensaje.color);
+                txt.style.setProperty('--fuente-mensaje', mensaje.fuente);
+                txt.style.fontFamily = mensaje.fuente;
+                txt.style.fontSize = (isM ? 18 : 24) + 'px';
+                if (mensaje.texto.length > 12) txt.style.fontSize = (isM ? 16 : 20) + 'px';
+                txt.textContent = mensaje.texto;
+                div.appendChild(txt);
+                cont.appendChild(div);
             }
             
-            // ============================================
-            // ☁️ FIREBASE - CARGAR MENSAJES
-            // ============================================
             function cargarMensajesFirebase() {
-                db.ref('muro').once('value', (s) => {
-                    let data = s.val();
-                    
-                    if (data && data.mensajes) {
+                db.ref('muro').once('value', (s)=>{
+                    let d = s.val();
+                    if (d?.mensajes) {
                         document.getElementById('mensajes-flotantes').innerHTML = '';
-                        
-                        Object.values(data.mensajes).forEach(m => {
+                        Object.values(d.mensajes).forEach(m=>{
                             mensajes.set(m.id, m);
                             if (m.id >= nextId) nextId = m.id + 1;
                         });
-                        
-                        if (data.bloquesOcupados) {
-                            Object.entries(data.bloquesOcupados).forEach(([i, v]) => {
-                                ocupados.set(parseInt(i), v);
-                            });
-                        }
-                        
+                        if (d.bloquesOcupados) Object.entries(d.bloquesOcupados).forEach(([i,v])=>ocupados.set(parseInt(i), v));
                         let mapa = new Map();
-                        ocupados.forEach((d, i) => {
+                        ocupados.forEach((d,i)=>{
                             let m = mensajes.get(d.mensajeId);
                             if (m) {
                                 if (!mapa.has(m.id)) mapa.set(m.id, { mensaje: m, bloques: [] });
                                 mapa.get(m.id).bloques.push(i);
                             }
                         });
-                        
-                        mapa.forEach(item => {
-                            pintarMensaje(item.mensaje, item.bloques);
-                        });
-                        
+                        mapa.forEach(item => pintarMensaje(item.mensaje, item.bloques));
                         stats();
-                    } else {
-                        cargarEjemplos();
-                    }
+                    } else cargarEjemplos();
                 });
             }
             
@@ -738,354 +663,169 @@
                 });
             }
             
-            // ============================================
-            // 📚 EJEMPLOS INICIALES
-            // ============================================
             function cargarEjemplos() {
                 if (mensajes.size > 0) return;
-                
-                let ejemplos = [
-                    { id: 1, texto: "TE AMO", remitente: "María", color: "#fff", fondo: "#ff3366", fuente: "Arial", ancho: 3, alto: 1 },
-                    { id: 2, texto: "MI AMOR", remitente: "Carlos", color: "#fff", fondo: "#3366ff", fuente: "Arial", ancho: 3, alto: 1 },
-                    { id: 3, texto: "SIEMPRE", remitente: "Ana", color: "#fff", fondo: "#33cc66", fuente: "Arial", ancho: 4, alto: 1 }
+                let ej = [
+                    { id:1, texto:"TE AMO", remitente:"María", color:"#fff", fondo:"#ff3366", fuente:"Arial", ancho:3, alto:1 },
+                    { id:2, texto:"MI AMOR", remitente:"Carlos", color:"#fff", fondo:"#3366ff", fuente:"Arial", ancho:3, alto:1 },
+                    { id:3, texto:"SIEMPRE", remitente:"Ana", color:"#fff", fondo:"#33cc66", fuente:"Arial", ancho:4, alto:1 }
                 ];
-                
-                ejemplos.forEach((ej, idx) => {
-                    mensajes.set(ej.id, ej);
-                    let inicio = 30 + idx * 12;
-                    let bloques = [];
-                    for (let j = 0; j < ej.ancho; j++) bloques.push(inicio + j);
-                    pintarMensaje(ej, bloques);
+                ej.forEach((e,i)=>{
+                    mensajes.set(e.id, e);
+                    let inicio = 30 + i*12;
+                    let b = [];
+                    for (let j=0; j<e.ancho; j++) b.push(inicio + j);
+                    pintarMensaje(e, b);
                 });
-                
-                guardarFirebase();
-                stats();
+                guardarFirebase(); stats();
             }
             
-            // ============================================
-            // 🧱 INICIALIZAR MURO
-            // ============================================
             function inicializarMuro() {
                 let m = document.getElementById('muro');
                 m.innerHTML = '';
-                
-                for (let i = 0; i < CONFIG.TOTAL_BLOQUES; i++) {
+                for (let i=0; i<CONFIG.TOTAL_BLOQUES; i++) {
                     let b = document.createElement('div');
-                    b.className = 'bloque';
-                    b.dataset.index = i;
-                    b.textContent = '□';
-                    
-                    b.onclick = (e) => {
+                    b.className = 'bloque'; b.dataset.index = i; b.textContent = '□';
+                    b.onclick = (e)=>{
                         e.stopPropagation();
-                        
                         if (b.classList.contains('ocupado')) {
                             let msg = mensajes.get(parseInt(b.dataset.mensajeId));
                             if (msg) alert(`💌 ${msg.remitente}: "${msg.texto}"`);
                             return;
                         }
-                        
-                        if (seleccion.has(i)) {
-                            seleccion.delete(i);
-                            b.classList.remove('selected');
-                        } else {
-                            if (seleccion.size < 30) {
-                                seleccion.add(i);
-                                b.classList.add('selected');
-                            } else {
-                                alert('Máximo 30 bloques');
-                            }
-                        }
+                        if (seleccion.has(i)) { seleccion.delete(i); b.classList.remove('selected'); }
+                        else { if (seleccion.size < 30) { seleccion.add(i); b.classList.add('selected'); } else alert('Máximo 30'); }
                         ui();
                     };
-                    
                     m.appendChild(b);
                 }
-                
-                cargarMensajesFirebase();
-                ui();
-                stats();
+                cargarMensajesFirebase(); ui(); stats();
             }
             
-            // ============================================
-            // 📝 PUBLICAR MENSAJE
-            // ============================================
             function publicarMensaje() {
                 let txt = document.getElementById('formMensaje').value.trim();
                 let email = document.getElementById('formEmail').value.trim();
                 let rem = document.getElementById('formRemitente').value.trim() || 'Anónimo';
                 let fuente = document.getElementById('formFuente').value;
-                
-                if (!txt || !email?.includes('@')) {
-                    alert('Completa todos los campos');
-                    return;
-                }
-                
-                if (!esRectanguloPerfecto(seleccion)) {
-                    alert('❌ Los bloques deben formar un rectángulo perfecto');
-                    return;
-                }
-                
-                let limpio = txt.replace(/\s/g, '');
-                if (limpio.length > seleccion.size * 2) {
-                    alert(`⚠️ Máximo ${seleccion.size * 2} caracteres`);
-                    return;
-                }
-                
-                let msg = {
-                    id: nextId++,
-                    texto: txt,
-                    remitente: rem,
-                    email: email,
-                    fuente: fuente,
+                if (!txt || !email?.includes('@')) { alert('Completa'); return; }
+                if (!esRectanguloPerfecto(seleccion)) { alert('❌ Rectángulo'); return; }
+                let limpio = txt.replace(/\s/g,'');
+                if (limpio.length > seleccion.size*2) { alert('⚠️ Demasiados'); return; }
+                let msg = { id: nextId++, texto: txt, remitente: rem, email, fuente,
                     color: document.getElementById('formColor').value,
                     fondo: document.getElementById('formBg').value + 'cc',
-                    caracteres: limpio.length,
-                    fecha: new Date().toISOString()
-                };
-                
+                    caracteres: limpio.length, fecha: new Date().toISOString() };
                 mensajes.set(msg.id, msg);
                 pintarMensaje(msg, Array.from(seleccion));
-                seleccion.clear();
-                guardarFirebase();
-                enviarEmail(email, msg);
+                seleccion.clear(); guardarFirebase(); enviarEmail(email, msg);
                 document.getElementById('postPaymentForm').classList.remove('active');
-                ui();
-                stats();
-                
-                alert('🎉 ¡Mensaje publicado!');
-                for (let i = 0; i < 12; i++) setTimeout(crearCorazon, i * 70);
+                ui(); stats(); alert('🎉 Publicado!');
+                for (let i=0;i<12;i++) setTimeout(crearCorazon,i*70);
             }
             
-            window.enviarEmail = async function(email, m) {
+            window.enviarEmail = async function(email,m) {
                 try {
                     let linkVer = `${location.origin}${location.pathname}?ver=mensaje_${m.id}`;
-                    let primerBloque = 0;
-                    for (let [i, d] of ocupados.entries()) {
-                        if (d.mensajeId === m.id) {
-                            primerBloque = i;
-                            break;
-                        }
-                    }
-                    let linkBloque = `${location.origin}${location.pathname}?bloque=${primerBloque}`;
-                    
+                    let pb=0; for (let [i,d] of ocupados.entries()) if (d.mensajeId === m.id) { pb=i; break; }
+                    let linkBloque = `${location.origin}${location.pathname}?bloque=${pb}`;
                     await emailjs.send(CONFIG.EMAILJS.SERVICE_ID, CONFIG.EMAILJS.TEMPLATE_ID, {
-                        to_email: email,
-                        to_name: m.remitente,
-                        from_name: m.remitente,
-                        message_text: m.texto,
-                        blocks_used: Math.ceil(m.caracteres / 2),
-                        share_link: linkVer,
-                        muro_link: linkBloque,
-                        reply_to: 'xanderxy.dd@gmail.com'
-                    });
-                    return true;
-                } catch (e) {
-                    console.error('Error email:', e);
-                    return false;
-                }
+                        to_email: email, to_name: m.remitente, from_name: m.remitente,
+                        message_text: m.texto, blocks_used: Math.ceil(m.caracteres/2),
+                        share_link: linkVer, muro_link: linkBloque, reply_to: 'xanderxy.dd@gmail.com'
+                    }); return true;
+                } catch(e){ return false; }
             };
             
-            // ============================================
-            // 📊 UI
-            // ============================================
             function ui() {
                 let c = seleccion.size;
                 document.getElementById('contadorBloques').textContent = c;
-                document.getElementById('maxCaracteres').textContent = c * 2;
-                document.getElementById('totalPrecio').textContent = (c * 1).toFixed(2);
-                document.getElementById('btnComprar').disabled = c === 0;
-                document.getElementById('btnComprar').innerHTML = c ? `💰 COMPRAR $${c}.00` : '💰 COMPRAR CON PAYPAL';
-                document.getElementById('formBloques').textContent = c;
-                document.getElementById('formCharLimit').textContent = c * 2;
+                document.getElementById('maxCaracteres').textContent = c*2;
+                document.getElementById('totalPrecio').textContent = (c*1).toFixed(2);
+                document.getElementById('btnComprar').disabled = c===0;
+                document.getElementById('btnComprar').innerHTML = c ? `💰 COMPRAR $${c}.00` : '💰 COMPRAR';
+                document.getElementById('formCharLimit').textContent = c*2;
             }
             
             function stats() {
                 document.getElementById('miniBloquesLibres').textContent = (5000 - ocupados.size).toLocaleString();
             }
             
-            // ============================================
-            // 🔐 PAYPAL
-            // ============================================
             function comprarPayPal() {
-                if (seleccion.size === 0) {
-                    alert('Selecciona bloques');
-                    return;
-                }
-                
-                if (!esRectanguloPerfecto(seleccion)) {
-                    alert('❌ Los bloques deben formar un rectángulo');
-                    return;
-                }
-                
-                localStorage.setItem('compra', JSON.stringify({
-                    bloques: Array.from(seleccion),
-                    cantidad: seleccion.size,
-                    timestamp: Date.now()
-                }));
-                
-                let total = seleccion.size;
-                location.href = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=${CONFIG.PAYPAL_EMAIL}&item_name=${total}%20bloques&amount=${total}.00&currency_code=USD&return=${location.origin}${location.pathname}?pago=ok&cancel_return=${location.origin}${location.pathname}?pago=no`;
+                if (!seleccion.size) { alert('Selecciona'); return; }
+                if (!esRectanguloPerfecto(seleccion)) { alert('❌ Rectángulo'); return; }
+                localStorage.setItem('compra', JSON.stringify({ bloques: Array.from(seleccion), cantidad: seleccion.size, timestamp: Date.now() }));
+                location.href = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=${CONFIG.PAYPAL_EMAIL}&item_name=${seleccion.size}%20bloques&amount=${seleccion.size}.00&currency_code=USD&return=${location.origin}${location.pathname}?pago=ok&cancel_return=${location.origin}${location.pathname}`;
             }
             
             function verificarPago() {
-                let p = new URLSearchParams(location.search);
-                if (p.get('pago') === 'ok') {
+                if (location.search.includes('pago=ok')) {
                     let c = localStorage.getItem('compra');
-                    if (c) {
-                        try {
-                            let d = JSON.parse(c);
-                            d.bloques.forEach(i => {
-                                let b = document.querySelector(`.bloque[data-index="${i}"]`);
-                                if (b && !b.classList.contains('ocupado')) {
-                                    seleccion.add(i);
-                                    b.classList.add('selected');
-                                }
-                            });
-                            ui();
-                            document.getElementById('postPaymentForm').classList.add('active');
-                            history.replaceState({}, '', location.pathname);
-                            localStorage.removeItem('compra');
-                        } catch (e) {
-                            console.error(e);
-                        }
-                    }
+                    if (c) { try {
+                        let d = JSON.parse(c);
+                        d.bloques.forEach(i=>{ let b=document.querySelector(`.bloque[data-index="${i}"]`);
+                            if (b && !b.classList.contains('ocupado')) { seleccion.add(i); b.classList.add('selected'); }
+                        });
+                        ui(); document.getElementById('postPaymentForm').classList.add('active');
+                        history.replaceState({},'',location.pathname); localStorage.removeItem('compra');
+                    } catch(e){} }
                 }
             }
             
-            // ============================================
-            // 🖱️ PANEL MOVIBLE
-            // ============================================
             function initPanelMovible() {
-                let panel = document.getElementById('movablePanel');
-                let header = document.getElementById('panelHeader');
-                let dragging = false;
-                let startX, startY, startLeft, startTop;
-                
-                function startDrag(e) {
-                    e.preventDefault();
-                    dragging = true;
-                    
-                    let clientX, clientY;
-                    if (e.type === 'mousedown') {
-                        clientX = e.clientX;
-                        clientY = e.clientY;
-                    } else {
-                        clientX = e.touches[0].clientX;
-                        clientY = e.touches[0].clientY;
-                    }
-                    
-                    startX = clientX;
-                    startY = clientY;
-                    startLeft = panel.offsetLeft;
-                    startTop = panel.offsetTop;
-                    panel.style.cursor = 'grabbing';
-                    panel.style.transform = 'none';
+                let p = document.getElementById('movablePanel'), h = document.getElementById('panelHeader');
+                let d = false, sx, sy, lx, ly;
+                function start(e){
+                    e.preventDefault(); d=true;
+                    let cx = e.type[0]=='m' ? e.clientX : e.touches[0].clientX;
+                    let cy = e.type[0]=='m' ? e.clientY : e.touches[0].clientY;
+                    sx=cx; sy=cy; lx=p.offsetLeft; ly=p.offsetTop;
+                    p.style.cursor='grabbing'; p.style.transform='none';
                 }
-                
-                function moveDrag(e) {
-                    if (!dragging) return;
-                    e.preventDefault();
-                    
-                    let clientX, clientY;
-                    if (e.type === 'mousemove') {
-                        clientX = e.clientX;
-                        clientY = e.clientY;
-                    } else {
-                        clientX = e.touches[0].clientX;
-                        clientY = e.touches[0].clientY;
-                    }
-                    
-                    let newX = startLeft + (clientX - startX);
-                    let newY = startTop + (clientY - startY);
-                    
-                    newX = Math.max(5, Math.min(window.innerWidth - panel.offsetWidth - 5, newX));
-                    newY = Math.max(5, Math.min(window.innerHeight - panel.offsetHeight - 5, newY));
-                    
-                    panel.style.left = newX + 'px';
-                    panel.style.top = newY + 'px';
-                    panel.style.right = 'auto';
-                    panel.style.bottom = 'auto';
+                function move(e){
+                    if(!d) return; e.preventDefault();
+                    let cx = e.type[0]=='m' ? e.clientX : e.touches[0].clientX;
+                    let cy = e.type[0]=='m' ? e.clientY : e.touches[0].clientY;
+                    let nx = lx + (cx-sx), ny = ly + (cy-sy);
+                    nx = Math.max(5, Math.min(innerWidth-p.offsetWidth-5, nx));
+                    ny = Math.max(5, Math.min(innerHeight-p.offsetHeight-5, ny));
+                    p.style.left = nx+'px'; p.style.top = ny+'px';
+                    p.style.right='auto'; p.style.bottom='auto';
                 }
-                
-                function stopDrag() {
-                    dragging = false;
-                    panel.style.cursor = 'move';
-                }
-                
-                header.addEventListener('mousedown', startDrag);
-                document.addEventListener('mousemove', moveDrag);
-                document.addEventListener('mouseup', stopDrag);
-                
-                header.addEventListener('touchstart', startDrag, { passive: false });
-                document.addEventListener('touchmove', moveDrag, { passive: false });
-                document.addEventListener('touchend', stopDrag);
-                
-                if (window.innerWidth <= 768) {
-                    panel.style.left = '50%';
-                    panel.style.top = '20px';
-                    panel.style.bottom = 'auto';
-                    panel.style.right = 'auto';
-                    panel.style.transform = 'translateX(-50%)';
+                function stop(){ d=false; p.style.cursor='move'; }
+                h.addEventListener('mousedown', start);
+                document.addEventListener('mousemove', move);
+                document.addEventListener('mouseup', stop);
+                h.addEventListener('touchstart', start, { passive: false });
+                document.addEventListener('touchmove', move, { passive: false });
+                document.addEventListener('touchend', stop);
+                if (innerWidth <= 768) {
+                    p.style.left = '50%'; p.style.top = '20px'; p.style.transform = 'translateX(-50%)';
                 } else {
-                    panel.style.left = 'auto';
-                    panel.style.right = '20px';
-                    panel.style.top = '100px';
-                    panel.style.bottom = 'auto';
-                    panel.style.transform = 'none';
+                    p.style.left = 'auto'; p.style.right = '20px'; p.style.top = '100px'; p.style.transform = 'none';
                 }
             }
             
-            // ============================================
-            // 💖 CORAZONES
-            // ============================================
             function crearCorazon() {
-                let h = document.createElement('div');
-                h.className = 'floating-heart';
-                h.innerHTML = ['💖', '💗', '💓', '💕'][Math.floor(Math.random() * 4)];
-                h.style.left = Math.random() * 100 + '%';
-                h.style.color = ['#ff4f8b', '#ff6b9d', '#ff8e8e'][Math.floor(Math.random() * 3)];
-                h.style.fontSize = (Math.random() * 16 + 18) + 'px';
-                document.body.appendChild(h);
-                setTimeout(() => h.remove(), 13000);
+                let h = document.createElement('div'); h.className = 'floating-heart';
+                h.innerHTML = ['💖','💗','💓','💕'][Math.random()*4|0];
+                h.style.left = Math.random()*100+'%';
+                h.style.color = ['#ff4f8b','#ff6b9d','#ff8e8e'][Math.random()*3|0];
+                h.style.fontSize = (Math.random()*16+18)+'px';
+                document.body.appendChild(h); setTimeout(()=>h.remove(),13000);
             }
+            function corazones() { for(let i=0;i<5;i++) setTimeout(crearCorazon,i*300); setInterval(crearCorazon,3500); }
             
-            function corazones() {
-                for (let i = 0; i < 5; i++) setTimeout(crearCorazon, i * 300);
-                setInterval(crearCorazon, 3500);
-            }
-            
-            // ============================================
-            // 🔑 PRUEBA SECRETA (SOLO PARA AD)
-            // ============================================
             window.pruebaSecreta = function(k) {
                 if (k === 'Mirekos89') {
-                    for (let f = 0; f < 98; f++) {
-                        for (let c = 0; c < 46; c++) {
-                            let r = [];
-                            for (let i = 0; i < 2; i++) {
-                                for (let j = 0; j < 4; j++) {
-                                    r.push((f + i) * 50 + (c + j));
-                                }
-                            }
-                            
-                            let libre = true;
-                            for (let b of r) {
-                                let bloque = document.querySelector(`.bloque[data-index="${b}"]`);
-                                if (bloque && bloque.classList.contains('ocupado')) {
-                                    libre = false;
-                                    break;
-                                }
-                            }
-                            
-                            if (libre) {
-                                localStorage.setItem('compra', JSON.stringify({
-                                    bloques: r,
-                                    cantidad: 8,
-                                    timestamp: Date.now()
-                                }));
-                                location.href = location.pathname + '?pago=ok';
-                                return "✅ Listo";
-                            }
+                    for (let f=0; f<98; f++) for (let c=0; c<46; c++) {
+                        let r = [];
+                        for (let i=0;i<2;i++) for (let j=0;j<4;j++) r.push((f+i)*50+(c+j));
+                        let libre = true;
+                        for (let b of r) if (document.querySelector(`.bloque[data-index="${b}"]`)?.classList.contains('ocupado')) { libre=false; break; }
+                        if (libre) {
+                            localStorage.setItem('compra', JSON.stringify({ bloques: r, cantidad: 8, timestamp: Date.now() }));
+                            location.href = location.pathname + '?pago=ok';
+                            return "✅ Listo";
                         }
                     }
                     return "❌ No hay espacio";
@@ -1093,49 +833,24 @@
                 return "⛔ Clave incorrecta";
             };
             
-            // ============================================
-            // 🚀 INICIALIZACIÓN
-            // ============================================
-            document.addEventListener('DOMContentLoaded', () => {
-                inicializarMuro();
-                corazones();
-                initPanelMovible();
-                verificarPago();
-                
+            document.addEventListener('DOMContentLoaded', ()=>{
+                inicializarMuro(); corazones(); initPanelMovible(); verificarPago();
                 document.getElementById('btnComprar').onclick = comprarPayPal;
-                
-                document.getElementById('btnCancelar').onclick = () => {
-                    seleccion.forEach(i => {
-                        document.querySelector(`.bloque[data-index="${i}"]`)?.classList.remove('selected');
-                    });
-                    seleccion.clear();
-                    ui();
+                document.getElementById('btnCancelar').onclick = ()=>{
+                    seleccion.forEach(i=>document.querySelector(`.bloque[data-index="${i}"]`)?.classList.remove('selected'));
+                    seleccion.clear(); ui();
                 };
-                
                 document.getElementById('btnPublicar').onclick = publicarMensaje;
-                
-                document.getElementById('formMensaje').oninput = function() {
-                    document.getElementById('formCharCount').textContent = this.value.replace(/\s/g, '').length;
+                document.getElementById('formMensaje').oninput = function(){
+                    document.getElementById('formCharCount').textContent = this.value.replace(/\s/g,'').length;
                 };
-                
-                // ✅ MINIMIZAR - FUNCIONA SIEMPRE
-                document.getElementById('minimizePanel').onclick = function() {
+                document.getElementById('minimizePanel').onclick = function(){
                     let c = document.getElementById('panelContent');
-                    if (c.style.display === 'none') {
-                        c.style.display = 'block';
-                        this.innerHTML = '−';
-                    } else {
-                        c.style.display = 'none';
-                        this.innerHTML = '+';
-                    }
+                    c.style.display = c.style.display==='none' ? 'block' : 'none';
+                    this.innerHTML = c.style.display==='none' ? '+' : '−';
                 };
-                
-                window.onbeforeunload = () => guardarFirebase();
-                
-                console.log('%c💖 MURO DEL AMOR - VERSIÓN FINAL', 'background: #ff4f8b; color: white; font-size: 16px; padding: 10px;');
-                console.log('✅ Nueva clave API protegida');
-                console.log('✅ Todo funcionando');
-                console.log('🔑 Prueba: pruebaSecreta("Mirekos89")');
+                window.onbeforeunload = ()=>guardarFirebase();
+                console.log('%c✅ VERSIÓN SEGURA - CLAVE OCULTA', 'background:#ff4f8b; color:white; padding:8px;');
             });
         })();
     </script>
