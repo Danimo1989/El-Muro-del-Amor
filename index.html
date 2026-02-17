@@ -421,11 +421,22 @@
         <div class="panel-header" id="panelHeader">
             <h3>📦 TU SELECCIÓN</h3>
             <div class="panel-controls">
-                <!-- ✅ MISMO ID, MISMO BOTÓN -->
                 <button class="panel-btn" id="minimizePanel">−</button>
             </div>
         </div>
         <div class="panel-content" id="panelContent">
+            <div class="selection-info">
+                <div>📦 <strong id="contadorBloques">0</strong> bloques</div>
+                <div>📊 <strong id="maxCaracteres">0</strong> caracteres</div>
+                <div>💰 Total: <strong>$<span id="totalPrecio">0.00</span> USD</strong></div>
+            </div>
+            <button id="btnComprar" class="btn btn-primary" disabled>💰 COMPRAR CON PAYPAL</button>
+            <button id="btnCancelar" class="btn btn-secondary">❌ LIMPIAR</button>
+            <div style="margin-top:12px; text-align:center; font-size:0.85rem; color:#ffccd5;">
+                1 bloque = 2 caracteres • $1 USD
+            </div>
+        </div>
+    </div>
             <div class="selection-info">
                 <div>📦 <strong id="contadorBloques">0</strong> bloques</div>
                 <div>📊 <strong id="maxCaracteres">0</strong> caracteres</div>
@@ -990,6 +1001,7 @@
     </script>
 </body>
 </html>
+
 
 
 
