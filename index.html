@@ -941,16 +941,17 @@
             });
             
             // ✅ MINIMIZAR - AHORA SÍ FUNCIONA EN MÓVIL
-            document.getElementById('minimizePanel').onclick = function() {
-                let content = document.getElementById('panelContent');
-                if (content.style.display === 'none') {
-                    content.style.display = 'block';
-                    this.innerHTML = '−';
-                } else {
-                    content.style.display = 'none';
-                    this.innerHTML = '+';
-                }
-            };
+            // ✅ MINIMIZAR - VERSIÓN CORREGIDA (FUNCIONA EN MÓVIL)
+document.getElementById('minimizePanel').onclick = function() {
+    const content = document.getElementById('panelContent');
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        this.innerHTML = '−';
+    } else {
+        content.style.display = 'none';
+        this.innerHTML = '+';
+    }
+};
             
             window.addEventListener('beforeunload', () => guardarFirebase());
             console.log('✅ CÓDIGO CORREGIDO - CLAVE NUEVA + MINIMIZAR FUNCIONA');
@@ -958,3 +959,4 @@
     </script>
 </body>
 </html>
+
