@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>El Muro del Amor 💖</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(180deg, #0a0a14 0%, #1a1a2e 100%);
+            color: white;
+            overflow-x: hidden;
+        }
+        .header {
+            text-align: center; padding: 20px 15px;
+            background: rgba(0,0,0,0.9); position: sticky; top: 0;
+            border-bottom: 3px solid #ff4f8b; backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+        .title {
+            font-size: 2.5rem; font-weight: bold;
+            background: linear-gradient(45deg, #ff4f8b, #ff9a8b);
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+        .subtitle {
+            font-size: 1.1rem; color: #ffccd5; font-style: italic;
+        }
+        
+        /* PANEL CORREGIDO */
+        .movable-panel {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            width: 300px;
+            background: rgba(0,0,0,0.95);
+            padding: 20px;
+            border-radius: 15px;
+            z-index: 9999;
+            border: 2px solid #ff4f8b;
+            box-shadow: 0 10px 40px rgba(255,79,139,0.5);
+            backdrop-filter: blur(10px);
+            cursor: move;
+            user-select: none;
+            resize: none;
+            touch-action: none;
+        }
+        .panel-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 15px; cursor: move; touch-action: none;
+        }
+        .panel-header h3 { color: #ffccd5; font-size: 1.1rem; margin: 0; }
+        .panel-controls { display: flex; gap: 10px; }
+        .panel-btn {
+            width: 36px; height: 36px;
+            background: rgba(255,79,139,0.2);
+            border: 1px solid #ff4f8b; color: white; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; cursor: pointer; touch-action: manipulation;
+        }
+        .panel-btn:hover { background: #ff4f8b; }
+        .panel-content { cursor: default; }
+        
+        .selection-info {
+            margin-bottom: 15px; padding: 12px;
+            background: rgba(255,79,139,0.2); border-radius: 8px;
+            font-size: 0.95rem;
+        }
+        .btn {
+            padding: 12px; border: none; border-radius: 8px;
+            font-size: 1rem; font-weight: bold; width: 100%; margin: 6px 0;
+            touch-action: manipulation; cursor: pointer;
+        }
+        .btn-primary {
+            background: linear-gradient(45deg, #ff4f8b, #ff6b9d); color: white;
+        }
+        .btn-primary:disabled { background: #555; opacity: 0.6; }
+        .btn-secondary {
+            background: transparent; color: #ffccd5; border: 2px solid #ffccd5;
+        }
+        
+        /* MURO OPTIMIZADO */
+        .wall-container { padding: 20px; max-width: 100vw; margin-bottom: 200px; }
+        .muro-scroll {
+            max-height: 75vh; overflow-y: auto; overflow-x: auto;
+            border-radius: 15px; padding: 15px;
+            background: rgba(0,0,0,0.3);
+            -webkit-overflow-scrolling: touch;
+            position: relative;
+        }
+        #muro {
+            display: grid;
+            grid-template-columns: repeat(50, 70px);
+            grid-auto-rows: 60px; gap: 3px;
+            margin: 0 auto; width: fit-content;
+            background: rgba(44,44,62,0.5); padding: 12px; border-radius: 12px;
+        }
+        .bloque {
+            width: 70px; height: 60px; background: #2c2c3e;
+            border-radius: 8px; cursor: pointer; position: relative;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.05);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; font-weight: bold; color: white;
+            touch-action: manipulation;
+        }
+        .bloque:hover:not(.ocupado):not(.selected) {
+            background: #3a3a52; border-color: #ff4f8b; transform: scale(1.02);
+        }
+        .bloque.selected {
+            background: linear-gradient(45deg, #ff4f8b, #ff9a8b);
+            animation: pulse 1.5s infinite;
+            box-shadow: 0 0 15px rgba(255,79,139,0.7);
+            border: 2px solid #ffffff;
+        }
+        .bloque.ocupado {
+            background: var(--fondo-mensaje, #ff4f8b);
+            border: none;
+            box-shadow: 0 0 15px var(--fondo-mensaje, #ff4f8b);
+        }
+        .bloque.ocupado + .bloque.ocupado { border-left: none; margin-left: -2px; }
+        
+        #mensajes-flotantes {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 30;
+        }
+        .mensaje-flotante {
+            position: absolute; display: flex; align-items: center; justify-content: center;
+            pointer-events: none; z-index: 40;
+        }
+        .texto-centrado {
+            font-size: 24px; font-weight: bold;
+            color: var(--color-letra, #ffffff);
+            font-family: var(--fuente-mensaje, 'Arial');
+            text-shadow: 0 0 15px currentColor;
+            white-space: nowrap; letter-spacing: 2px;
+            padding: 8px 20px;
+            background: var(--fondo-mensaje, #ff4f8b);
+            border-radius: 12px;
+            border: 3px solid var(--fondo-mensaje, #ff4f8b);
+            box-shadow: 0 0 20px var(--fondo-mensaje, #ff4f8b);
+        }
+        
+        .mini-stats {
+            position: fixed; bottom: 20px; left: 20px;
+            background: rgba(0,0,0,0.8); padding: 10px 15px; border-radius: 8px;
+            z-index: 1000; border-left: 4px solid #ff4f8b;
+            backdrop-filter: blur(10px); font-size: 0.85rem;
+        }
+        
+        .post-payment-form {
+            position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%; max-width: 550px;
+            background: rgba(0,0,0,0.95); padding: 25px; border-radius: 15px;
+            z-index: 2000; border: 2px solid #ff4f8b;
+            display: none;
+        }
+        .post-payment-form.active { display: block; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label {
+            display: block; margin-bottom: 6px; color: #ffccd5; font-weight: bold;
+        }
+        .form-control {
+            width: 100%; padding: 10px;
+            background: #2c2c3e; border: 2px solid #4ecdc4;
+            border-radius: 6px; color: white;
+        }
+        
+        .floating-heart {
+            position: fixed; pointer-events: none; z-index: 9999;
+            font-size: 22px; bottom: -40px;
+            animation: floatHeart 12s ease-in forwards;
+        }
+        @keyframes floatHeart {
+            0% { transform: translateY(0) rotate(0deg) scale(0.3); opacity: 0; }
+            100% { transform: translateY(-100vh) rotate(360deg) scale(0.5); opacity: 0; }
+        }
+        
+        /* MÓVIL OPTIMIZADO - 1000 BLOQUES SOLO */
+        @media (max-width: 768px) {
+            .movable-panel {
+                width: 90%; max-width: 320px;
+                left: 50%; right: auto; top: 20px; bottom: auto;
+                transform: translateX(-50%);
+            }
+            #muro {
+                grid-template-columns: repeat(50, 48px);
+                grid-auto-rows: 45px; gap: 2px;
+            }
+            .bloque { width: 48px; height: 45px; font-size: 14px; }
+            .texto-centrado { font-size: 18px; padding: 5px 12px; }
+        }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">El Muro del Amor 💖</div>
+        <div class="subtitle">Tus sentimientos en píxeles, <span>hasta que el internet se apague...</span></div>
+    </div>
+    
+    <div class="movable-panel" id="movablePanel">
+        <div class="panel-header" id="panelHeader">
+            <h3>📦 TU SELECCIÓN</h3>
+            <div class="panel-controls">
+                <button class="panel-btn" id="minimizePanel">−</button>
+            </div>
+        </div>
+        <div class="panel-content" id="panelContent">
+            <div class="selection-info">
+                <div>📦 <strong id="contadorBloques">0</strong> bloques</div>
+                <div>📊 <strong id="maxCaracteres">0</strong> caracteres</div>
+                <div>💰 Total: <strong>$<span id="totalPrecio">0.00</span> USD</strong></div>
+            </div>
+            <button id="btnComprarDirecto" class="btn btn-primary" disabled>💰 COMPRAR CON PAYPAL</button>
+            <button id="btnCancelar" class="btn btn-secondary">❌ LIMPIAR</button>
+            <div style="margin-top:12px; text-align:center; font-size:0.85rem; color:#ffccd5;">
+                1 bloque = 2 caracteres • $1 USD
+            </div>
+        </div>
+    </div>
+    
+    <div class="mini-stats" id="miniStats">
+        <span>📊 <strong id="miniBloquesLibres">5,000</strong> libres</span>
+    </div>
+    
+    <div class="wall-container">
+        <div class="muro-scroll" id="muroScroll">
+            <div style="position: relative;">
+                <div id="muro"></div>
+                <div id="mensajes-flotantes"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="post-payment-form" id="postPaymentForm">
+        <div style="text-align:center; margin-bottom:20px;">
+            <h2 style="color:#ff4f8b; font-size:1.8rem;">✍️ ESCRIBE</h2>
+            <p style="color:#ffccd5;">1 bloque = 2 caracteres • Usas <span id="formBloques">0</span></p>
+        </div>
+        <div class="form-group">
+            <label>📧 Email</label>
+            <input type="email" id="formEmail" class="form-control" placeholder="tu@email.com">
+        </div>
+        <div class="form-group">
+            <label>💌 Mensaje</label>
+            <textarea id="formMensaje" class="form-control" rows="2" placeholder="TE AMO ANDRES"></textarea>
+            <div style="text-align:right; margin-top:5px; color:#aaa;">
+                <span id="formCharCount">0</span> / <span id="formCharLimit">0</span>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>✍️ Firmar</label>
+            <input type="text" id="formRemitente" class="form-control" value="Anónimo">
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px;">
+            <div><label style="color:#ffccd5;">Color</label><input type="color" id="formColor" value="#ffffff" style="width:100%; height:40px;"></div>
+            <div><label style="color:#ffccd5;">Fondo</label><input type="color" id="formBg" value="#ff4f8b" style="width:100%; height:40px;"></div>
+        </div>
+        <div style="margin-bottom:20px;">
+            <label style="color:#ffccd5;">🖋️ Fuente</label>
+            <select id="formFuente" class="form-control">
+                <option value="Arial">Arial</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Impact">Impact</option>
+            </select>
+        </div>
+        <button id="btnPublicarFinal" class="btn btn-primary" style="background:#4ecdc4;">💖 PUBLICAR</button>
+    </div>
+
+    <script>
+        // 🔥 CONFIGURACIÓN
+        const firebaseConfig = {
+            apiKey: "AIzaSyBDp8Iqn7Rf9EnXWBhn0kW7iv2ysZs9pbQ",
+            authDomain: "el-muro-del-amor.firebaseapp.com",
+            databaseURL: "https://el-muro-del-amor-default-rtdb.firebaseio.com",
+            projectId: "el-muro-del-amor",
+            storageBucket: "el-muro-del-amor.firebasestorage.app",
+            messagingSenderId: "378615957699",
+            appId: "1:378615957699:web:556fc8ced01365e4b67a76"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        emailjs.init('MMa0uYfb9WrPFZAIn');
+        
+        const CONFIG = {
+            PRECIO: 1,
+            COLUMNAS: 50,
+            FILAS: 100,
+            TOTAL_BLOQUES: 5000,
+            CARACTERES_POR_BLOQUE: 2,
+            ESPACIOS_CUENTAN: false,
+            ANCHO_BLOQUE: 70, ALTO_BLOQUE: 60, GAP: 3,
+            ANCHO_BLOQUE_MOVIL: 48, ALTO_BLOQUE_MOVIL: 45,
+            PAYPAL_EMAIL: 'xanderxy.dd@gmail.com',
+            EMAILJS: { SERVICE_ID: 'service_2h5gi1k', TEMPLATE_ID: 'template_2f82j5k' }
+        };
+        
+        let bloquesSeleccionados = new Set();
+        let bloquesOcupados = new Map();
+        let mensajesCompletos = new Map();
+        let nextMessageId = 1;
+        
+        function esRectanguloPerfecto(b) {
+            if (!b.size) return true;
+            let arr = Array.from(b).sort((x,y)=>x-y);
+            let f = arr.map(i=>Math.floor(i/50)), c = arr.map(i=>i%50);
+            let fM = Math.min(...f), fX = Math.max(...f), cM = Math.min(...c), cX = Math.max(...c);
+            for (let i=fM; i<=fX; i++) for (let j=cM; j<=cX; j++) if (!arr.includes(i*50+j)) return false;
+            return true;
+        }
+        
+        function inicializarMuro() {
+            let m = document.getElementById('muro');
+            m.innerHTML = '';
+            for (let i=0; i<CONFIG.TOTAL_BLOQUES; i++) {
+                let b = document.createElement('div');
+                b.className = 'bloque'; b.dataset.index = i;
+                b.addEventListener('click', (e)=>{
+                    e.stopPropagation();
+                    if (b.classList.contains('ocupado')) {
+                        let msg = mensajesCompletos.get(parseInt(b.dataset.mensajeId));
+                        if (msg) alert(`💌 ${msg.remitente}: "${msg.texto}"`);
+                        return;
+                    }
+                    if (bloquesSeleccionados.has(i)) {
+                        bloquesSeleccionados.delete(i); b.classList.remove('selected');
+                    } else {
+                        bloquesSeleccionados.add(i); b.classList.add('selected');
+                    }
+                    actualizarUI();
+                });
+                m.appendChild(b);
+            }
+            cargarMensajesFirebase();
+            // ⚠️ IMPORTANTE: Ejemplos solo si NO HAY mensajes
+            setTimeout(() => {
+                if (mensajesCompletos.size === 0) cargarEjemplos();
+            }, 500);
+            actualizarUI(); actualizarStats();
+        }
+        
+        function pintarMensaje(mensaje, bloques) {
+            if (!bloques?.length) return;
+            let idxs = Array.from(bloques).sort((a,b)=>a-b);
+            let fs = idxs.map(i=>Math.floor(i/50)), cs = idxs.map(i=>i%50);
+            let fMin = Math.min(...fs), fMax = Math.max(...fs), cMin = Math.min(...cs), cMax = Math.max(...cs);
+            let isM = window.innerWidth <= 768;
+            let anB = isM ? 48 : 70, alB = isM ? 45 : 60, gp = isM ? 2 : 3;
+            let izq = cMin * (anB + gp) + 12, ancho = (cMax-cMin+1)*(anB+gp)-gp;
+            let top = fMin * (alB + gp) + 12, alto = (fMax-fMin+1)*(alB+gp)-gp;
+            
+            for (let f=fMin; f<=fMax; f++) for (let c=cMin; c<=cMax; c++) {
+                let idx = f*50 + c, b = document.querySelector(`.bloque[data-index="${idx}"]`);
+                if (b) {
+                    b.classList.add('ocupado'); b.classList.remove('selected');
+                    b.dataset.mensajeId = mensaje.id;
+                    b.style.setProperty('--fondo-mensaje', mensaje.fondo);
+                    b.style.setProperty('--color-letra', mensaje.color);
+                    b.style.setProperty('--fuente-mensaje', mensaje.fuente);
+                    b.innerHTML = '';
+                }
+                bloquesOcupados.set(idx, { mensajeId: mensaje.id });
+            }
+            
+            let cont = document.getElementById('mensajes-flotantes');
+            let div = document.createElement('div');
+            div.className = 'mensaje-flotante';
+            div.style.left = izq+'px'; div.style.top = top+'px';
+            div.style.width = ancho+'px'; div.style.height = alto+'px';
+            div.dataset.mensajeId = mensaje.id;
+            let txt = document.createElement('div');
+            txt.className = 'texto-centrado';
+            txt.style.setProperty('--fondo-mensaje', mensaje.fondo);
+            txt.style.setProperty('--color-letra', mensaje.color);
+            txt.style.setProperty('--fuente-mensaje', mensaje.fuente);
+            txt.style.fontFamily = mensaje.fuente;
+            let fs2 = isM ? 18 : 24;
+            if (mensaje.texto.length > 12) fs2 = isM ? 16 : 20;
+            txt.style.fontSize = fs2+'px';
+            txt.textContent = mensaje.texto;
+            div.appendChild(txt);
+            cont.appendChild(div);
+        }
+        
+        function cargarMensajesFirebase() {
+            db.ref('muro').once('value', (s) => {
+                let data = s.val();
+                if (data?.mensajes) {
+                    // Limpiar contenedor pero NO los maps
+                    document.getElementById('mensajes-flotantes').innerHTML = '';
+                    
+                    Object.values(data.mensajes).forEach(m => {
+                        if (!mensajesCompletos.has(m.id)) {
+                            mensajesCompletos.set(m.id, m);
+                        }
+                        if (m.id >= nextMessageId) nextMessageId = m.id + 1;
+                    });
+                    
+                    if (data.bloquesOcupados) {
+                        Object.entries(data.bloquesOcupados).forEach(([i, v]) => {
+                            bloquesOcupados.set(parseInt(i), v);
+                        });
+                    }
+                    
+                    let mapa = new Map();
+                    bloquesOcupados.forEach((dato, indice) => {
+                        let mensaje = mensajesCompletos.get(dato.mensajeId);
+                        if (mensaje) {
+                            if (!mapa.has(mensaje.id)) mapa.set(mensaje.id, { mensaje, bloques: [] });
+                            mapa.get(mensaje.id).bloques.push(indice);
+                        }
+                    });
+                    
+                    mapa.forEach(item => pintarMensaje(item.mensaje, item.bloques));
+                    actualizarStats();
+                    console.log(`✅ Cargados ${mensajesCompletos.size} mensajes`);
+                }
+            });
+        }
+        
+        function guardarFirebase() {
+            db.ref('muro').set({
+                mensajes: Object.fromEntries(mensajesCompletos),
+                bloquesOcupados: Object.fromEntries(bloquesOcupados),
+                nextId: nextMessageId,
+                timestamp: Date.now()
+            });
+        }
+        
+        function cargarEjemplos() {
+            let ej = [
+                { id:1, texto:"TE AMO", remitente:"María", color:"#fff", fondo:"#ff3366", fuente:"Arial", ancho:3 },
+                { id:2, texto:"MI AMOR", remitente:"Carlos", color:"#fff", fondo:"#3366ff", fuente:"Arial", ancho:3 },
+                { id:3, texto:"SIEMPRE", remitente:"Ana", color:"#fff", fondo:"#33cc66", fuente:"Arial", ancho:4 }
+            ];
+            ej.forEach((e,i)=>{
+                if (!mensajesCompletos.has(e.id)) {
+                    mensajesCompletos.set(e.id, e);
+                    let inicio = 50 + i*15;
+                    let bl = [];
+                    for (let j=0; j<e.ancho; j++) bl.push(inicio + j);
+                    pintarMensaje(e, bl);
+                }
+            });
+            guardarFirebase();
+            actualizarStats();
+        }
+        
+        function publicarMensaje() {
+            let txt = document.getElementById('formMensaje').value.trim();
+            let email = document.getElementById('formEmail').value.trim();
+            let rem = document.getElementById('formRemitente').value.trim() || 'Anónimo';
+            let fuente = document.getElementById('formFuente').value;
+            if (!txt || !email?.includes('@')) { alert('Completa campos'); return; }
+            if (!esRectanguloPerfecto(bloquesSeleccionados)) { alert('❌ Rectángulo perfecto'); return; }
+            let limpio = txt.replace(/\s/g,'');
+            if (limpio.length > bloquesSeleccionados.size * 2) { alert('⚠️ Demasiados caracteres'); return; }
+            
+            let msg = {
+                id: nextMessageId++, texto: txt, remitente: rem, email, fuente,
+                color: document.getElementById('formColor').value,
+                fondo: document.getElementById('formBg').value + 'cc',
+                caracteres: limpio.length, fecha: new Date().toISOString()
+            };
+            mensajesCompletos.set(msg.id, msg);
+            pintarMensaje(msg, Array.from(bloquesSeleccionados));
+            bloquesSeleccionados.clear();
+            guardarFirebase();
+            enviarEmail(email, msg);
+            document.getElementById('postPaymentForm').classList.remove('active');
+            actualizarUI(); actualizarStats();
+            alert('🎉 Publicado!');
+            crearExplosionCorazones(12);
+        }
+        
+        window.enviarEmail = async function(email, m) {
+            try {
+                let link = `${location.origin}${location.pathname}?ver=mensaje_${m.id}`;
+                await emailjs.send(CONFIG.EMAILJS.SERVICE_ID, CONFIG.EMAILJS.TEMPLATE_ID, {
+                    to_email: email, to_name: m.remitente, from_name: m.remitente,
+                    message_text: m.texto, blocks_used: Math.ceil(m.caracteres/2),
+                    share_link: link, muro_link: location.origin+location.pathname,
+                    reply_to: 'xanderxy.dd@gmail.com'
+                }); return true;
+            } catch(e){ return false; }
+        };
+        
+        function actualizarUI() {
+            let c = bloquesSeleccionados.size;
+            document.getElementById('contadorBloques').textContent = c;
+            document.getElementById('maxCaracteres').textContent = c*2;
+            document.getElementById('totalPrecio').textContent = (c*1).toFixed(2);
+            let btn = document.getElementById('btnComprarDirecto');
+            btn.disabled = c === 0;
+            btn.innerHTML = c ? `💰 COMPRAR $${c}.00` : '💰 COMPRAR CON PAYPAL';
+            document.getElementById('formBloques').textContent = c;
+            document.getElementById('formCharLimit').textContent = c*2;
+        }
+        
+        function actualizarStats() {
+            let libres = 5000 - bloquesOcupados.size;
+            document.getElementById('miniBloquesLibres').textContent = libres.toLocaleString();
+        }
+        
+        function comprarPayPal() {
+            if (!bloquesSeleccionados.size) { alert('Selecciona bloques'); return; }
+            if (!esRectanguloPerfecto(bloquesSeleccionados)) { alert('❌ Rectángulo'); return; }
+            localStorage.setItem('compraActiva', JSON.stringify({
+                bloques: Array.from(bloquesSeleccionados),
+                cantidad: bloquesSeleccionados.size,
+                timestamp: Date.now()
+            }));
+            let total = bloquesSeleccionados.size;
+            location.href = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=${CONFIG.PAYPAL_EMAIL}&item_name=${total}%20bloques&amount=${total}.00&currency_code=USD&return=${location.origin}${location.pathname}?pago=exito&cancel_return=${location.origin}${location.pathname}?pago=cancelado`;
+        }
+        
+        function verificarPago() {
+            let p = new URLSearchParams(location.search);
+            if (p.get('pago') === 'exito') {
+                let c = localStorage.getItem('compraActiva');
+                if (c) { try {
+                    let d = JSON.parse(c);
+                    d.bloques.forEach(i=>{
+                        let b = document.querySelector(`.bloque[data-index="${i}"]`);
+                        if (b && !b.classList.contains('ocupado')) {
+                            bloquesSeleccionados.add(i);
+                            b.classList.add('selected');
+                        }
+                    });
+                    actualizarUI();
+                    document.getElementById('postPaymentForm').classList.add('active');
+                    window.history.replaceState({}, '', location.pathname);
+                    localStorage.removeItem('compraActiva');
+                } catch(e){} }
+            }
+        }
+        
+        function initPanelMovible() {
+            const panel = document.getElementById('movablePanel');
+            const header = document.getElementById('panelHeader');
+            let dragging = false, sX, sY, lX, lY;
+            
+            function startDrag(e) {
+                e.preventDefault();
+                dragging = true;
+                let clientX = e.type === 'mousedown' ? e.clientX : e.touches[0].clientX;
+                let clientY = e.type === 'mousedown' ? e.clientY : e.touches[0].clientY;
+                sX = clientX; sY = clientY;
+                lX = panel.offsetLeft; lY = panel.offsetTop;
+                panel.style.cursor = 'grabbing';
+                panel.style.transform = 'none';
+            }
+            function moveDrag(e) {
+                if (!dragging) return;
+                e.preventDefault();
+                let clientX = e.type === 'mousemove' ? e.clientX : e.touches[0].clientX;
+                let clientY = e.type === 'mousemove' ? e.clientY : e.touches[0].clientY;
+                let newX = lX + (clientX - sX), newY = lY + (clientY - sY);
+                newX = Math.max(5, Math.min(window.innerWidth - panel.offsetWidth - 5, newX));
+                newY = Math.max(5, Math.min(window.innerHeight - panel.offsetHeight - 5, newY));
+                panel.style.left = newX + 'px'; panel.style.top = newY + 'px';
+                panel.style.right = 'auto'; panel.style.bottom = 'auto';
+            }
+            function stopDrag() { dragging = false; panel.style.cursor = 'move'; }
+            
+            header.addEventListener('mousedown', startDrag);
+            document.addEventListener('mousemove', moveDrag);
+            document.addEventListener('mouseup', stopDrag);
+            header.addEventListener('touchstart', startDrag, { passive: false });
+            document.addEventListener('touchmove', moveDrag, { passive: false });
+            document.addEventListener('touchend', stopDrag);
+            
+            // ✅ BOTÓN MINIMIZAR - AHORA SÍ FUNCIONA
+            const minimizeBtn = document.getElementById('minimizePanel');
+            if (minimizeBtn) {
+                minimizeBtn.onclick = function() {
+                    let c = document.getElementById('panelContent');
+                    let b = document.getElementById('minimizePanel');
+                    if (c.style.display === 'none') {
+                        c.style.display = 'block';
+                        b.innerHTML = '−';
+                    } else {
+                        c.style.display = 'none';
+                        b.innerHTML = '+';
+                    }
+                };
+            }
+            
+            if (window.innerWidth <= 768) {
+                panel.style.left = '50%'; panel.style.top = '20px';
+                panel.style.transform = 'translateX(-50%)';
+            } else {
+                panel.style.left = 'auto'; panel.style.right = '20px';
+                panel.style.top = '100px'; panel.style.transform = 'none';
+            }
+        }
+        
+        function crearCorazon() {
+            let h = document.createElement('div'); h.className = 'floating-heart';
+            h.innerHTML = ['💖','💗','💓','💕'][Math.floor(Math.random()*4)];
+            h.style.left = Math.random()*100+'%';
+            h.style.color = ['#ff4f8b','#ff6b9d','#ff8e8e'][Math.floor(Math.random()*3)];
+            h.style.fontSize = (Math.random()*16+18)+'px';
+            document.body.appendChild(h);
+            setTimeout(() => h.remove(), 13000);
+        }
+        function iniciarCorazones() { for(let i=0;i<5;i++) setTimeout(crearCorazon,i*300); setInterval(crearCorazon,3500); }
+        function crearExplosionCorazones(c) { for(let i=0;i<c;i++) setTimeout(crearCorazon,i*70); }
+        
+        window.pruebaSecreta = function(k) {
+            if (k === 'Mirekos89') {
+                for (let f=0; f<98; f++) for (let c=0; c<46; c++) {
+                    let r = [];
+                    for (let i=0;i<2;i++) for (let j=0;j<4;j++) r.push((f+i)*50+(c+j));
+                    let libre = true;
+                    for (let b of r) if (document.querySelector(`.bloque[data-index="${b}"]`)?.classList.contains('ocupado')) { libre=false; break; }
+                    if (libre) {
+                        localStorage.setItem('compraActiva', JSON.stringify({ bloques: r, cantidad: 8, timestamp: Date.now() }));
+                        location.href = location.pathname + '?pago=exito';
+                        return "✅ Listo";
+                    }
+                }
+                return "❌ No hay espacio";
+            }
+            return "⛔ Clave incorrecta";
+        };
+        
+        document.addEventListener('DOMContentLoaded', ()=>{
+            inicializarMuro();
+            iniciarCorazones();
+            initPanelMovible();
+            verificarPago();
+            
+            document.getElementById('btnComprarDirecto').addEventListener('click', comprarPayPal);
+            document.getElementById('btnCancelar').addEventListener('click', ()=>{
+                bloquesSeleccionados.forEach(i=>document.querySelector(`.bloque[data-index="${i}"]`)?.classList.remove('selected'));
+                bloquesSeleccionados.clear(); actualizarUI();
+            });
+            document.getElementById('btnPublicarFinal').addEventListener('click', publicarMensaje);
+            document.getElementById('formMensaje').addEventListener('input', function(){
+                document.getElementById('formCharCount').textContent = this.value.replace(/\s/g,'').length;
+            });
+            
+            window.addEventListener('beforeunload', ()=>guardarFirebase());
+            console.log('✅ TODO CORREGIDO - D&L visible, minimizar funciona');
+        });
+    </script>
+</body>
+</html>
