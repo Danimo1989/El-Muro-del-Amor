@@ -983,25 +983,14 @@
             document.getElementById('formMensaje').addEventListener('input', function() {
                 document.getElementById('formCharCount').textContent = this.value.replace(/\s/g, '').length;
             });
-            
-            // ✅ MINIMIZAR - VERSIÓN CORREGIDA (FUNCIONA EN MÓVIL)
-document.getElementById('minimizePanel').onclick = function() {
-    const content = document.getElementById('panelContent');
-    if (content.style.display === 'none') {
-        content.style.display = 'block';
-        this.innerHTML = '−';
-    } else {
-        content.style.display = 'none';
-        this.innerHTML = '+';
-    }
-};
-            
+              
             window.addEventListener('beforeunload', () => guardarFirebase());
             console.log('✅ CÓDIGO CORREGIDO - CLAVE NUEVA + MINIMIZAR FUNCIONA');
         });
     </script>
 </body>
 </html>
+
 
 
 
