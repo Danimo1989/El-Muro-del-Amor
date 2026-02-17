@@ -594,110 +594,106 @@
             actualizarStats();
         }
         
-               function pintarMensaje(mensaje, bloques) {
-            if (!bloques?.length) return;
-            
-            // Ordenar los bloques seleccionados
-            let idxs = Array.from(bloques).sort((a, b) => a - b);
-            
-            // Calcular el rectángulo que ocupan
-            let filas = idxs.map(i => Math.floor(i / 50));
-            let cols = idxs.map(i => i % 50);
-            let filaMin = Math.min(...filas);
-            let filaMax = Math.max(...filas);
-            let colMin = Math.min(...cols);
-            let colMax = Math.max(...cols);
-            
-            let isMobile = window.innerWidth <= 768;
-            
-            // Tamaños según dispositivo
-            let anchoBloque = isMobile ? 48 : 70;
-            let altoBloque = isMobile ? 45 : 60;
-            let gap = isMobile ? 2 : 3;
-            
-            // Calcular el centro del rectángulo
-            let centroX = (colMin + colMax) / 2;
-            let centroY = (filaMin + filaMax) / 2;
-            
-            let izquierda = centroX * (anchoBloque + gap) + (isMobile ? 10 : 12);
-            let top = centroY * (altoBloque + gap) + (isMobile ? 10 : 12);
-            
-            // Calcular ancho y alto TOTAL del rectángulo
-            let anchoTotal = (colMax - colMin + 1) * (anchoBloque + gap) - gap;
-            let altoTotal = (filaMax - filaMin + 1) * (altoBloque + gap) - gap;
-            
-            // Verificar que los bloques no estén ocupados antes de marcarlos
-            for (let f = filaMin; f <= filaMax; f++) {
-                for (let c = colMin; c <= colMax; c++) {
-                    let idx = f * 50 + c;
-                    let bloque = document.querySelector(`.bloque[data-index="${idx}"]`);
-                    if (bloque && bloque.classList.contains('ocupado')) {
-                        // Este bloque ya está ocupado por otro mensaje
-                        console.warn('Intento de ocupar bloque ya ocupado:', idx);
-                        // Podrías mostrar un error o simplemente saltarlo
-                    }
-                }
-            }
-            
-            // Marcar TODOS los bloques como ocupados (sin texto)
-            for (let f = filaMin; f <= filaMax; f++) {
-                for (let c = colMin; c <= colMax; c++) {
-                    let idx = f * 50 + c;
-                    let bloque = document.querySelector(`.bloque[data-index="${idx}"]`);
-                    if (bloque) {
-                        bloque.classList.add('ocupado');
-                        bloque.classList.remove('selected');
-                        bloque.dataset.mensajeId = mensaje.id;
-                        bloque.style.setProperty('--fondo-mensaje', mensaje.fondo);
-                        bloque.style.setProperty('--color-letra', mensaje.color);
-                        bloque.style.setProperty('--fuente-mensaje', mensaje.fuente);
-                        bloque.innerHTML = '';
-                    }
-                    bloquesOcupados.set(idx, { mensajeId: mensaje.id });
-                }
-            }
-            
-            // Crear un SOLO elemento flotante que ocupe TODO el rectángulo
-            let contenedor = document.getElementById('mensajes-flotantes');
-            
-            // Limpiar mensajes anteriores de este mismo ID (por si acaso)
-            let existente = document.querySelector(`.mensaje-flotante[data-mensaje-id="${mensaje.id}"]`);
-            if (existente) existente.remove();
-            
-            let div = document.createElement('div');
-            div.className = 'mensaje-flotante';
-            div.style.left = izquierda + 'px';
-            div.style.top = top + 'px';
-            div.style.width = anchoTotal + 'px';
-            div.style.height = altoTotal + 'px';
-            div.style.transform = 'translate(-50%, -50%)';
-            div.style.display = 'flex';
-            div.style.alignItems = 'center';
-            div.style.justifyContent = 'center';
-            div.dataset.mensajeId = mensaje.id;
-            
-            let texto = document.createElement('div');
-            texto.className = 'texto-centrado';
-            texto.style.setProperty('--fondo-mensaje', mensaje.fondo);
-            texto.style.setProperty('--color-letra', mensaje.color);
-            texto.style.setProperty('--fuente-mensaje', mensaje.fuente);
-            texto.style.fontFamily = mensaje.fuente;
-            
-            // ✅ TAMAÑO DE FUENTE DINÁMICO SEGÚN EL ESPACIO
-            let longitud = mensaje.texto.length;
-            let tamanoBase = Math.min(anchoTotal / (longitud * 0.6), altoTotal * 0.8);
-            
-            // Límites
-            let tamanoMax = isMobile ? 32 : 48;
-            let tamanoMin = isMobile ? 14 : 18;
-            
-            let tamanoFinal = Math.min(tamanoMax, Math.max(tamanoMin, tamanoBase));
-            texto.style.fontSize = tamanoFinal + 'px';
-            
-            texto.textContent = mensaje.texto;
-            div.appendChild(texto);
-            contenedor.appendChild(div);
+              function pintarMensaje(mensaje, bloques) {
+    if (!bloques?.length) return;
+    
+    // Ordenar los bloques seleccionados
+    let idxs = Array.from(bloques).sort((a, b) => a - b);
+    
+    // Calcular el rectángulo que ocupan
+    let filas = idxs.map(i => Math.floor(i / 50));
+    let cols = idxs.map(i => i % 50);
+    let filaMin = Math.min(...filas);
+    let filaMax = Math.max(...filas);
+    let colMin = Math.min(...cols);
+    let colMax = Math.max(...cols);
+    
+    let isMobile = window.innerWidth <= 768;
+    
+    // Tamaños según dispositivo
+    let anchoBloque = isMobile ? 48 : 70;
+    let altoBloque = isMobile ? 45 : 60;
+    let gap = isMobile ? 2 : 3;
+    
+    // Calcular el centro del rectángulo
+    let centroX = (colMin + colMax) / 2;
+    let centroY = (filaMin + filaMax) / 2;
+    
+    let izquierda = centroX * (anchoBloque + gap) + (isMobile ? 10 : 12);
+    let top = centroY * (altoBloque + gap) + (isMobile ? 10 : 12);
+    
+    // Calcular ancho y alto TOTAL del rectángulo
+    let anchoTotal = (colMax - colMin + 1) * (anchoBloque + gap) - gap;
+    let altoTotal = (filaMax - filaMin + 1) * (altoBloque + gap) - gap;
+    
+    // ✅ ANTES DE MARCAR, ELIMINAR CUALQUIER MENSAJE FLOTANTE QUE YA OCUPE ESTOS BLOQUES
+    // Esto evita que los ejemplos se monten
+    let contenedor = document.getElementById('mensajes-flotantes');
+    let mensajesExistentes = contenedor.children;
+    for (let i = mensajesExistentes.length - 1; i >= 0; i--) {
+        let msg = mensajesExistentes[i];
+        let msgId = msg.dataset.mensajeId;
+        if (msgId && mensajesCompletos.has(parseInt(msgId))) {
+            // Si el mensaje existe, lo dejamos
+        } else {
+            // Si no, lo borramos (ejemplos viejos)
+            msg.remove();
         }
+    }
+    
+    // Marcar TODOS los bloques como ocupados (sin texto)
+    for (let f = filaMin; f <= filaMax; f++) {
+        for (let c = colMin; c <= colMax; c++) {
+            let idx = f * 50 + c;
+            let bloque = document.querySelector(`.bloque[data-index="${idx}"]`);
+            if (bloque) {
+                bloque.classList.add('ocupado');
+                bloque.classList.remove('selected');
+                bloque.dataset.mensajeId = mensaje.id;
+                bloque.style.setProperty('--fondo-mensaje', mensaje.fondo);
+                bloque.style.setProperty('--color-letra', mensaje.color);
+                bloque.style.setProperty('--fuente-mensaje', mensaje.fuente);
+                bloque.innerHTML = '';
+            }
+            bloquesOcupados.set(idx, { mensajeId: mensaje.id });
+        }
+    }
+    
+    // Crear un SOLO elemento flotante que ocupe TODO el rectángulo
+    let div = document.createElement('div');
+    div.className = 'mensaje-flotante';
+    div.style.left = izquierda + 'px';
+    div.style.top = top + 'px';
+    div.style.width = anchoTotal + 'px';
+    div.style.height = altoTotal + 'px';
+    div.style.transform = 'translate(-50%, -50%)';
+    div.style.display = 'flex';
+    div.style.alignItems = 'center';
+    div.style.justifyContent = 'center';
+    div.dataset.mensajeId = mensaje.id;
+    
+    let texto = document.createElement('div');
+    texto.className = 'texto-centrado';
+    texto.style.setProperty('--fondo-mensaje', mensaje.fondo);
+    texto.style.setProperty('--color-letra', mensaje.color);
+    texto.style.setProperty('--fuente-mensaje', mensaje.fuente);
+    texto.style.fontFamily = mensaje.fuente;
+    
+    // ✅ TAMAÑO DE FUENTE DINÁMICO SEGÚN EL ESPACIO
+    let longitud = mensaje.texto.length;
+    let tamanoBase = Math.min(anchoTotal / (longitud * 0.6), altoTotal * 0.8);
+    
+    // Límites
+    let tamanoMax = isMobile ? 32 : 48;
+    let tamanoMin = isMobile ? 14 : 18;
+    
+    let tamanoFinal = Math.min(tamanoMax, Math.max(tamanoMin, tamanoBase));
+    texto.style.fontSize = tamanoFinal + 'px';
+    
+    texto.textContent = mensaje.texto;
+    div.appendChild(texto);
+    contenedor.appendChild(div);
+}
         
         function cargarEjemplos() {
             let tieneClientes = false;
@@ -1006,6 +1002,7 @@ document.getElementById('minimizePanel').onclick = function() {
     </script>
 </body>
 </html>
+
 
 
 
